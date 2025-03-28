@@ -1,0 +1,26 @@
+name: buddi_conda
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - numpy
+  - pandas
+  - notebook
+  - matplotlib
+  - matplotlib-venn
+  - seaborn
+  - scikit-learn
+  - scipy
+  - tqdm
+  - jupyter
+  - ipywidgets
+  - umap-learn
+  - scanpy
+  - anndata
+  - pydot
+  - graphviz
+  - upsetplot
+  - umap-learn
+  - pip:
+    - tensorflow[and-cuda]
