@@ -71,7 +71,7 @@ Currently, the only supported module architecture is buddi4 with 4 latent spaces
 
 ## Usage
 ```python
-from buddi4 import build_buddi4, fit_buddi4
+from buddi_v2.models.buddi4 import build_buddi4, fit_buddi4
 
 # See module `dataset` for details in dataset construction
 dataset_supervised = ... 
