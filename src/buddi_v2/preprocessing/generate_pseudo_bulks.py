@@ -12,7 +12,7 @@ def generate_pseudo_bulk_from_counts(
         in_adata: AnnData, 
         cell_df: CellDf, 
         count_df: pd.DataFrame,
-        cell_noise: List[np.array] = None, 
+        cell_noise: Union[List[np.array], Tuple[float,float]] = None, 
         use_sample_noise: bool = True,
         sample_noise_kwargs: Dict = {}
     ) -> pd.DataFrame:
@@ -22,16 +22,36 @@ def generate_pseudo_bulk_from_counts(
     :param in_adata: The AnnData object containing single-cell expression data.
     :param cell_df: Dictionary of cell type names mapped to subsetted AnnData objects.
     :param count_df: DataFrame containing the number of cells to sample for each cell type.
-    :param cell_noise: List of noise vectors for each cell type.
+    :param cell_noise: List of noise vectors for each cell type or a tuple of (mean, std) for lognormal noise generation.
+        If None, default noise is generated.
+        If an empty list is provided, cell noise is disabled.
+        If a tuple is provided, it must contain two float values (mean, std) for lognormal noise generation.
+        If a list of numpy arrays is provided, each array must have the same length as the number of genes in in_adata.    
     :param use_sample_noise: Whether to apply additional noise to the pseudobulk profiles.
     :return: Tuple of (total proportion DataFrame, total expression DataFrame).
     """
     num_celltypes = count_df.shape[1]
 
     # Generate cell-specific noise if not provided
-    if cell_noise is None:
+    if cell_noise is None: # Generate default noise #TODO: this is quite counter-intuitive behavior for None
         cell_noise = [np.random.lognormal(0, 0.1, in_adata.shape[1]) for _ in range(num_celltypes)]
-
+    elif isinstance(cell_noise, List):
+        if len(cell_noise) == 0:
+            # Disable cell noise if an empty list is provided
+            cell_noise = [np.ones(in_adata.shape[1]) for _ in range(num_celltypes)]
+        elif len(cell_noise) != num_celltypes:
+            raise ValueError(f"Length of cell_noise list ({len(cell_noise)}) does not match number of cell types ({num_celltypes}).")
+        else:
+            if not all(isinstance(noise, np.ndarray) for noise in cell_noise):
+                raise ValueError("All elements in cell_noise list must be numpy arrays.")
+            if not all(len(noise) == in_adata.shape[1] for noise in cell_noise):
+                raise ValueError("All elements in cell_noise list must have the same length as the number of genes in in_adata.")
+    elif isinstance(cell_noise, Tuple):
+        if len(cell_noise) == 2 and all(isinstance(param, float) for param in cell_noise):
+            # Generate noise based on provided mean and std
+            cell_noise = [np.random.lognormal(cell_noise[0], cell_noise[1], in_adata.shape[1]) for _ in range(num_celltypes)]
+        else:
+            raise ValueError("If cell_noise is a tuple, it must contain two float values (mean, std).")
     total_expr_list = []
 
     for samp_idx, (_, count_profile) in enumerate(tqdm(count_df.iterrows(), total=len(count_df))):
