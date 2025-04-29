@@ -7,7 +7,7 @@ import tensorflow.keras.backend as K
 LossFn = Callable[[tf.Tensor, tf.Tensor], tf.Tensor]
 LossAggregationFn = Callable[[tf.Tensor, Any], tf.Tensor]
 
-def kl_loss_generator(beta: float, 
+def kl_loss_generator(beta: float = 1.0, 
                       agg_fn: LossAggregationFn = K.sum,
                       **kwargs: Any
     ) -> Callable:
