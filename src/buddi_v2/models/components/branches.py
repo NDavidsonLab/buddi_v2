@@ -198,3 +198,43 @@ def build_semi_supervised_decoder(
         unsupervised_output, name=f'unsupervised_{output_name}_decoder')
     
     return supervised_decoder, unsupervised_decoder
+
+def build_decoder_branch(
+    y: tf.Tensor,
+    z_label: tf.Tensor,
+    z_stim: tf.Tensor,
+    z_samp_type: tf.Tensor,
+    z_slack: tf.Tensor,
+    output_dim: int,
+    decoder_hidden_dim: Union[int, List[int]],
+    activation: ActivationFn = 'relu',
+    output_activation: ActivationFn = 'sigmoid',
+    name: str = 'decoder_model'
+) -> Model:
+    
+    inputs = [y, z_label, z_stim, z_samp_type, z_slack]
+    x = Concatenate(name=f'{name}_concat')(inputs)
+
+    # Build one or more hidden layers
+    if isinstance(decoder_hidden_dim, List):
+        for i, h in enumerate(decoder_hidden_dim):
+            x = Dense(
+                h,
+                activation=activation,
+                name=f'{name}_hidden_{i}'
+            )(x)
+    else:
+        x = Dense(
+            decoder_hidden_dim,
+            activation=activation,
+            name=f'{name}_hidden'
+        )(x)
+
+    # Output layer
+    x_hat = Dense(
+        output_dim,
+        activation=output_activation,
+        name=f'{name}_output'
+    )(x)
+
+    return Model(inputs=inputs, outputs=x_hat, name=name)
