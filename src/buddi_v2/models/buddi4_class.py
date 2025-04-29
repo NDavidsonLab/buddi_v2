@@ -47,6 +47,20 @@ class BuDDI4:
         activation: Union[str, Callable] = 'relu',
         output_activation: Union[str, Callable] = 'sigmoid',
     ):
+        """
+        BuDDI4 constructor.
+        
+        :param n_x: Number of features in the input data
+        :param n_y: Number of features in the output data
+        :param n_labels: Number of unique labels in the data
+        :param n_stims: Number of unique stimulation conditions in the data
+        :param n_samp_types: Number of unique sample types in the data
+        :param z_dim: Dimension of the latent space
+        :param encoder_hidden_dim: Dimension of the hidden layers in the encoder
+        :param decoder_hidden_dim: Dimension of the hidden layers in the decoder
+        :param activation: Activation function for the hidden layers
+        :param output_activation: Activation function for the output layer
+        """
         
         self.__encoder_branch_names = [
             'label', 'stim', 'samp_type'
@@ -148,31 +162,71 @@ class BuDDI4:
     # ─── Loss setters ───────────────────────────────────────────
 
     def set_reconstruction_loss(self, fn: Callable, weight: float=1.0):
+        """
+        Set the reconstruction loss function for the decoder.
+
+        :param fn: Reconstruction loss function
+        :param weight: Weight of the reconstruction loss
+        """
         self.__losses['x_hat_sup'] = (fn, weight)
         self.__losses['x_hat_unsup'] = (fn, weight)
 
     def set_encoder_loss(self, branch: str, fn: Callable, weight: float=1.0):
+        """
+        Set the KL divergence loss function for the encoder branch.
+        :param branch: Name of the encoder branch
+        :param fn: KL divergence loss function
+        :param weight: Weight of the KL divergence loss
+        """
         self.__losses[f'kl_{branch}'] = (fn, weight)
 
     def set_all_encoder_losses(self, fn: Callable, weight: float=1.0):
+        """
+        Set the KL divergence loss function for all encoder branches.
+
+        :param fn: KL divergence loss function
+        :param weight: Weight of the KL divergence loss
+        """
         for branch in self.encoder_branch_names:
             self.set_encoder_loss(branch, fn, weight)
 
         self.set_encoder_loss(self.__slack_branch_name, fn, weight)
 
     def set_predictor_loss(self, branch: str, fn: Callable, weight: float=1.0):
+        """
+        Set the predictor loss function for the encoder branch.
+
+        :param branch: Name of the encoder branch
+        :param fn: Predictor loss function
+        :param weight: Weight of the predictor loss
+        """
         self.__losses[f'{branch}_pred'] = (fn, weight)
 
     def set_all_predictor_losses(self, fn: Callable, weight: float=1.0):
+        """
+        Set the predictor loss function for all encoder branches.
+
+        :param fn: Predictor loss function
+        :param weight: Weight of the predictor loss
+        """
         for branch in self.encoder_branch_names:
             self.set_predictor_loss(branch, fn, weight)
 
     def set_prop_estimator_loss(self, fn: Callable, weight: float=1.0):
+        """
+        Set the loss function for the prop estimator.
+        
+        :param fn: Loss function for the prop estimator
+        :param weight: Weight of the prop estimator loss
+        """
         self.__losses['y_hat'] = (fn, weight)
 
     # ─── Build Model ────────────────────────────────────────────
 
     def __build_models(self):
+        """
+        Internal helper method to build model parts
+        """
 
         n_x = self.config['n_x']
         n_y = self.config['n_y']
@@ -185,6 +239,7 @@ class BuDDI4:
         activation = self.config['activation']
         output_activation = self.config['output_activation']
 
+        # input tensors
         X = Input(shape=(n_x,), name='X')
         Y = Input(shape=(n_y,), name='Y')
         self.__input_layers['X'] = X
@@ -232,7 +287,6 @@ class BuDDI4:
         self.__output_layers['y_hat'] = y_hat
 
         # 3) decoder building
-
         self.__decoder = build_decoder_branch(
             y = Y,
             z_label = self.__output_layers['z_label'],
@@ -246,6 +300,7 @@ class BuDDI4:
             name='decoder'
         )
 
+        # output of supvised version of the decoder
         x_hat_sup = self.__decoder(
             (Y, 
             self.__output_layers['z_label'],
@@ -255,6 +310,7 @@ class BuDDI4:
         )
         self.__output_layers['x_hat_sup'] = x_hat_sup
 
+        # output of unsupervised version of the decoder
         x_hat_unsup = self.__decoder(
             (self.__output_layers['y_hat'], 
             self.__output_layers['z_label'],
@@ -269,7 +325,12 @@ class BuDDI4:
     def compile(
             self, 
             optimizer: Optimizer = None
-            ):
+        ):
+        """
+        Compile the model with the specified optimizer and loss functions.
+
+        :param optimizer: Optimizer to use for training
+        """
         if optimizer is None:
             optimizer = Adam(5e-4)
 
@@ -278,6 +339,7 @@ class BuDDI4:
             self.__input_layers['X'],
             self.__input_layers['Y'],
         ]
+        # stitch together the list of output tensors
         outputs_sup = [
             self.__output_layers['x_hat_sup'],
             self.__output_layers['z_label_param'],
@@ -294,7 +356,7 @@ class BuDDI4:
             outputs=outputs_sup,
             name='supervised_buddi4'
         )       
-
+        # stitch together the list of loss function keys corresponding to the outputs
         sup_loss_keys = [
             'x_hat_sup',
             'kl_label', 
@@ -316,6 +378,7 @@ class BuDDI4:
         inputs_unsup = [
             self.__input_layers['X'],
         ]
+        # likewise, stitch together the list of output tensors
         outputs_unsup = [
             self.__output_layers['x_hat_unsup'],
             self.__output_layers['z_label_param'],
@@ -332,7 +395,7 @@ class BuDDI4:
             outputs=outputs_unsup,
             name='unsupervised_buddi4'
         )
-
+        # stitch together the list of loss function keys corresponding to the outputs
         unsup_loss_keys = [
             'x_hat_unsup',
             'kl_label', 
@@ -364,6 +427,11 @@ class BuDDI4:
     # ─── Save / Load ────────────────────────────────────────────
 
     def save(self, directory: str):
+        """
+        Save the model to the specified directory.
+
+        :param directory: Directory to save the model to
+        """
         os.makedirs(directory, exist_ok=True)
         # save config only
 
@@ -380,6 +448,13 @@ class BuDDI4:
 
     @classmethod
     def load(cls, directory: str) -> 'BuDDI4':
+        """
+        Load the model from the specified directory and reconstruct the model class
+        from the saved config
+
+        :param directory: Directory to load the model from
+        :return: BuDDI4 class object with loaded weights
+        """
         with open(os.path.join(directory, 'config.json'), 'r') as f:
             cfg = json.load(f)
         obj = cls(**cfg)
