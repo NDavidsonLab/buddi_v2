@@ -211,6 +211,26 @@ def build_decoder_branch(
     output_activation: ActivationFn = 'sigmoid',
     name: str = 'decoder_model'
 ) -> Model:
+    """
+    Defines a decoder network that takes in multiple inputs, 
+    namely: 
+    y, z_label, z_stim, z_samp_type, and z_slack
+
+    :param y: Input tensor for the decoder
+    :param z_label: Input tensor for the label latent representation
+    :param z_stim: Input tensor for the stimulation latent representation
+    :param z_samp_type: Input tensor for the sample type latent representation
+    :param z_slack: Input tensor for the slack latent representation
+    :param output_dim: Dimension of the output layer
+    :param decoder_hidden_dim: Dimension of the hidden layers. 
+        Number of hidden layers is determined by the length of this list.
+        Defaults to a single hidden layer with 512 units.
+    :param activation: Activation function for the hidden layer
+    :param output_activation: Activation function for the output layer. 
+        Defaults to 'sigmoid' for binary outputs
+    :param name: Name of the decoder model
+    :return decoder: Decoder model
+    """
     
     inputs = [y, z_label, z_stim, z_samp_type, z_slack]
     x = Concatenate(name=f'{name}_concat')(inputs)
