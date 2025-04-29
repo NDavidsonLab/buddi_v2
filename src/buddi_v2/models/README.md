@@ -7,6 +7,7 @@ Currently, the only supported module architecture is buddi4 with 4 latent spaces
 ```
 .
 ├── buddi4.py              # Main model building and training
+├── buddi4_class.py        # Class version of buddi 4 model for convenient save/load/retraining
 ├── components/            # Model components
 │   ├── branches.py        # Functions for encoder and classifier branches
 │   ├── layers.py          # Custom layers like reparameterization
@@ -15,7 +16,7 @@ Currently, the only supported module architecture is buddi4 with 4 latent spaces
 └── README.md              # This file
 ```
 
-### Important Functions
+### Important Functions/Class
 
 - **`build_buddi4`**: the model instantiation function, with the following parameters:
     - `n_x`: number of genes (features in the input)
@@ -69,7 +70,71 @@ Currently, the only supported module architecture is buddi4 with 4 latent spaces
     **Returns**:
     - `pd.DataFrame`: a DataFrame of all losses per batch per epoch, with a `type` column indicating `supervised` or `unsupervised`
 
+- **`BuDDI4`**: a class version of `build_buddi4/fit_buddi4` that exposes a pure setter-based loss API and separates model building from compilation.
+
+    - `n_x`: number of genes (features in the input)
+    - `n_y`: number of cell types (features in the output or target Y)
+    - `n_labels`: number of unique sample identifiers (used in label classification branch)
+    - `n_stims`: number of stimulation conditions
+    - `n_samp_types`: number of sample types
+    - `z_dim`: latent space dimension (default: 64)
+    - `encoder_hidden_dim`: number of units in encoder hidden layers (default: 512)
+    - `decoder_hidden_dim`: number of units in decoder hidden layers (default: 512)
+    - `activation`: activation function for encoder and classifier hidden layers (default: `'relu'`)
+    - `output_activation`: activation function for decoder and classifier output layers (default: `'sigmoid'`)
+
+    **Returns**:
+    - A `BuDDI4` class instance with model parts (`encoders`, `classifiers`, `prop_estimator`, `decoder`) constructed but not yet compiled.
+
+- **`compile`**: compile the supervised and unsupervised models for training.
+
+    **Parameters**:
+    - `optimizer`: a Keras optimizer instance (default: `Adam(learning_rate=0.0005)`)
+
+    **Returns**:
+    - Compiled supervised (`sup_model`) and unsupervised (`unsup_model`) Keras models accessible via properties.
+
+- **Loss setters**: methods for flexible loss assignment before compiling.
+    
+    - **`set_reconstruction_loss(fn, weight)`**: set reconstruction loss for decoder.
+    - **`set_encoder_loss(branch, fn, weight)`**: set KL divergence loss for a specific latent space encoder branch.
+    - **`set_all_encoder_losses(fn, weight)`**: set the same KL divergence loss for all encoder branches.
+    - **`set_predictor_loss(branch, fn, weight)`**: set classification loss for a specific latent space classifier.
+    - **`set_all_predictor_losses(fn, weight)`**: set the same classification loss for all latent space classifiers.
+    - **`set_prop_estimator_loss(fn, weight)`**: set loss function for the bulk proportion estimator.
+
+- **Properties**: attributes accessible after building or compiling.
+
+    - `encoder_branch_names`: list of names of encoder branches (`['label', 'stim', 'samp_type']`)
+    - `config`: dictionary of model hyperparameters.
+    - `sup_model`: compiled supervised Keras model (available after `compile()`).
+    - `unsup_model`: compiled unsupervised Keras model (available after `compile()`).
+    - `decoder`: the shared decoder model.
+    - `prop_estimator`: the bulk proportion estimator model.
+    - `encoders`: dictionary of encoder branches (models).
+    - `classifiers`: dictionary of latent space classifier branches (models).
+    - `reparam_layers`: dictionary of reparameterization layers.
+    - `history`: placeholder for training history (currently not used).
+
+- **`save(directory)`**: saves the model weights and configuration to the specified directory.
+
+    **Parameters**:
+    - `directory`: path to save model configuration and weights.
+
+- **`load(directory)`**: loads a saved BuDDI4 model from disk.
+
+    **Parameters**:
+    - `directory`: path to load model configuration and weights from.
+
+    **Returns**:
+    - `BuDDI4` instance reconstructed with loaded weights and configuration.
+
+- **Notes**:
+    - `fit()` is intentionally not implemented inside the class. Use external `fit_buddi4()` function for training.
+    - `save()` and `load()` methods handle only model architecture (`config.json`) and weights (`.h5` files), not optimizer states.
+
 ## Usage
+Function version
 ```python
 from buddi_v2.models.buddi4 import build_buddi4, fit_buddi4
 
@@ -90,6 +155,68 @@ supervised_model, unsupervised_model = build_buddi4(
 loss_df = fit_buddi4(
     supervised_model,
     unsupervised_model,
+    dataset_supervised,
+    dataset_unsupervised,
+    epochs=20, batch_size=16
+)
+```
+Class version
+```python
+from tensorflow.keras.losses import CategoricalCrossentropy, MeanAbsoluteError
+from tensorflow.keras.optimizers import Adam
+
+from buddi_v2.models.components.losses import unsupervised_dummy_loss_fn
+from buddi_v2.models.buddi4 import fit_buddi4
+from buddi_v2.models.buddi4_class import BuDDI4
+
+# See module `dataset` for details in dataset construction
+dataset_supervised = ... 
+dataset_unsupervised = ...
+
+obj = BuDDI4(
+    n_x=5000,
+    n_y=10,
+    n_labels=4,
+    n_stims=3,
+    n_samp_types=2,
+)
+
+# configure reconstruction loss
+obj.set_reconstruction_loss(
+    fn=MeanAbsoluteError(),
+    weight=1.0,
+)
+
+# configure kl loss
+obj.set_encoder_loss(
+    branch='label',
+    fn=unsupervised_dummy_loss_fn,
+    weight=100.0,    
+)
+obj.set_encoder_loss(
+    branch='slack',
+    fn=unsupervised_dummy_loss_fn,
+    weight=1000.0,    
+)
+
+# configure classifier loss
+obj.set_predictor_loss(
+    branch='label',
+    fn=CategoricalCrossentropy,
+    weight=100.0
+)
+
+# configure prop estimator loss
+obj.set_prop_estimator_loss(
+    fn=MeanAbsoluteError,
+    weight=100.0,
+)
+
+model.compile(optimizer=Adam(learning_rate=0.0005))
+
+# Fit model by
+loss_df = fit_buddi4(
+    obj.sup_model, obj.unsup_model, 
     dataset_supervised,
     dataset_unsupervised,
     epochs=20, batch_size=16
