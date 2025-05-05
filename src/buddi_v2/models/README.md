@@ -6,14 +6,15 @@ Currently, the only supported module architecture is buddi4 with 4 latent spaces
 ### Module file structure
 ```
 .
-├── buddi4.py              # Main model building and training
-├── buddi4_class.py        # Class version of buddi 4 model for convenient save/load/retraining
-├── components/            # Model components
-│   ├── branches.py        # Functions for encoder and classifier branches
-│   ├── layers.py          # Custom layers like reparameterization
-│   ├── losses.py          # KL, reconstruction, and classifier loss functions
-├── __init__.py            # Module initializer
-└── README.md              # This file
+├── buddi4.py                # Main model building and training
+├── buddi4_class.py          # Class version of buddi4 model for convenient save/load/retraining
+├── components/              # Model components
+│   ├── branches.py          # Functions for encoder/decoder and classifier branches
+│   ├── wrapped_branches.py  # Wrapped version for encoder/decoder and classifier branches, each with independent input layers
+│   ├── layers.py            # Custom layers like reparameterization
+│   └── losses.py            # KL, reconstruction, and classifier loss functions
+├── __init__.py              # Module initializer
+└── README.md                # This file
 ```
 
 ### Important Functions/Class
