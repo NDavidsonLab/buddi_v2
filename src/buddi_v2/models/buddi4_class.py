@@ -540,6 +540,24 @@ class BuDDI4:
         self.__sup_model   = model_sup
         self.__unsup_model = model_unsup
 
+    # ─── Convenient Access ──────────────────────────────────────
+    def print_loss_table(self):
+        # compute column widths
+        name_w   = max(len(k) for k in self.__losses) + 2
+        fn_w     = max(len(type(fn).__name__) for fn, _ in self.__losses.values()) + 2
+        weight_w = max(len(str(w)) for _, w in self.__losses.values()) + 2
+
+        # header
+        header = f"{'Loss Name':<{name_w}}{'Function':<{fn_w}}{'Weight':<{weight_w}}"
+        sep    = '-' * len(header)
+
+        print(header)
+        print(sep)
+        # rows
+        for name, (fn, weight) in self.__losses.items():
+            fn_name = type(fn).__name__
+            print(f"{name:<{name_w}}{fn_name:<{fn_w}}{weight:<{weight_w}}")
+            
     # ─── Fit ────────────────────────────────────────────────────
 
     def fit(self, **kwargs):
