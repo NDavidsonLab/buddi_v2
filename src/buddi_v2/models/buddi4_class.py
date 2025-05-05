@@ -89,16 +89,16 @@ class BuDDI4:
 
         # 2. Default loss config registry; user can call setters before compile() to update
         self.__losses: Dict[str, Tuple[Callable, float]] = {
-            'x_hat_sup': (MeanAbsoluteError(), 1.0),
-            'x_hat_unsup': (MeanAbsoluteError(), 1.0),
-            'kl_label': (kl_loss_generator(), 1.0),
-            'kl_stim': (kl_loss_generator(), 1.0),
-            'kl_samp_type': (kl_loss_generator(), 1.0),
-            'kl_slack': (kl_loss_generator(), 1.0),
-            'label_pred': (CategoricalCrossentropy(), 1.0),
-            'stim_pred': (CategoricalCrossentropy(), 1.0),
-            'samp_type_pred': (CategoricalCrossentropy(), 1.0),
-            'y_hat': (CategoricalCrossentropy(), 1.0),
+            'x_hat_sup': (MeanAbsoluteError(reduction='sum'), 1.0),
+            'x_hat_unsup': (MeanAbsoluteError(reduction='sum'), 1.0),
+            'kl_label': (kl_loss, 1.0),
+            'kl_stim': (kl_loss, 1.0),
+            'kl_samp_type': (kl_loss, 1.0),
+            'kl_slack': (kl_loss, 1.0),
+            'label_pred': (CategoricalCrossentropy(reduction='sum'), 1.0),
+            'stim_pred': (CategoricalCrossentropy(reduction='sum'), 1.0),
+            'samp_type_pred': (CategoricalCrossentropy(reduction='sum'), 1.0),
+            'y_hat': (CategoricalCrossentropy(reduction='sum'), 1.0),
             'y_dummy': (unsupervised_dummy_loss_fn, 0.0),
         }
 
