@@ -199,62 +199,136 @@ def build_semi_supervised_decoder(
     
     return supervised_decoder, unsupervised_decoder
 
-def build_decoder_branch(
-    y: tf.Tensor,
-    z_label: tf.Tensor,
-    z_stim: tf.Tensor,
-    z_samp_type: tf.Tensor,
-    z_slack: tf.Tensor,
-    output_dim: int,
-    decoder_hidden_dim: Union[int, List[int]],
-    activation: ActivationFn = 'relu',
-    output_activation: ActivationFn = 'sigmoid',
-    name: str = 'decoder_model'
-) -> Model:
-    """
-    Defines a decoder network that takes in multiple inputs, 
-    namely: 
-    y, z_label, z_stim, z_samp_type, and z_slack
+# def build_decoder_branch(
+#     y: tf.Tensor,
+#     z_label: tf.Tensor,
+#     z_stim: tf.Tensor,
+#     z_samp_type: tf.Tensor,
+#     z_slack: tf.Tensor,
+#     output_dim: int,
+#     decoder_hidden_dim: Union[int, List[int]],
+#     activation: ActivationFn = 'relu',
+#     output_activation: ActivationFn = 'sigmoid',
+#     name: str = 'decoder_model'
+# ) -> Model:
+#     """
+#     Defines a decoder network that takes in multiple inputs, 
+#     namely: 
+#     y, z_label, z_stim, z_samp_type, and z_slack
 
-    :param y: Input tensor for the decoder
-    :param z_label: Input tensor for the label latent representation
-    :param z_stim: Input tensor for the stimulation latent representation
-    :param z_samp_type: Input tensor for the sample type latent representation
-    :param z_slack: Input tensor for the slack latent representation
-    :param output_dim: Dimension of the output layer
-    :param decoder_hidden_dim: Dimension of the hidden layers. 
+#     :param y: Input tensor for the decoder
+#     :param z_label: Input tensor for the label latent representation
+#     :param z_stim: Input tensor for the stimulation latent representation
+#     :param z_samp_type: Input tensor for the sample type latent representation
+#     :param z_slack: Input tensor for the slack latent representation
+#     :param output_dim: Dimension of the output layer
+#     :param decoder_hidden_dim: Dimension of the hidden layers. 
+#         Number of hidden layers is determined by the length of this list.
+#         Defaults to a single hidden layer with 512 units.
+#     :param activation: Activation function for the hidden layer
+#     :param output_activation: Activation function for the output layer. 
+#         Defaults to 'sigmoid' for binary outputs
+#     :param name: Name of the decoder model
+#     :return decoder: Decoder model
+#     """
+    
+#     inputs = [y, z_label, z_stim, z_samp_type, z_slack]
+#     x = Concatenate(name=f'{name}_concat')(inputs)
+
+#     # Build one or more hidden layers
+#     if isinstance(decoder_hidden_dim, List):
+#         for i, h in enumerate(decoder_hidden_dim):
+#             x = Dense(
+#                 h,
+#                 activation=activation,
+#                 name=f'{name}_hidden_{i}'
+#             )(x)
+#     else:
+#         x = Dense(
+#             decoder_hidden_dim,
+#             activation=activation,
+#             name=f'{name}_hidden'
+#         )(x)
+
+#     # Output layer
+#     x_hat = Dense(
+#         output_dim,
+#         activation=output_activation,
+#         name=f'{name}_output'
+#     )(x)
+
+#     return Model(inputs=inputs, outputs=x_hat, name=name)
+
+def build_decoder_branch(
+    sup_inputs: List[Input],
+    unsup_inputs: List[Input],
+    output_dim: int,
+    hidden_dims: Union[int, List[int]] = 512,
+    activation: str = 'relu',
+    output_activation: str = 'sigmoid',
+    output_name: str = ''
+) -> Tuple[Model, Model, Model]:
+    """
+    :param sup_inputs:   list of Input() tensors for the supervised branch
+    :param unsup_inputs: list of Input() tensors for the unsupervised branch
+    :param output_dim:   dimension of the output layer
+    :param hidden_dims:  dimension of the hidden layers. 
         Number of hidden layers is determined by the length of this list.
         Defaults to a single hidden layer with 512 units.
-    :param activation: Activation function for the hidden layer
-    :param output_activation: Activation function for the output layer. 
+    :param activation:   activation function for the hidden layer
+    :param output_activation: activation function for the output layer.
         Defaults to 'sigmoid' for binary outputs
-    :param name: Name of the decoder model
-    :return decoder: Decoder model
+    :param output_name:  name of the output layer (Reconstructed modality name)
+    :return: tuple of supervised and unsupervised decoder models sharing hidden and output layers
+        and a pure shared model for saving weights later
+    :returns: (sup_model, unsup_model, shared_model)
     """
-    
-    inputs = [y, z_label, z_stim, z_samp_type, z_slack]
-    x = Concatenate(name=f'{name}_concat')(inputs)
+    # 1) build the shared layer stack
+    shared_hidden_layers, shared_output_layer = _build_decoder_layers(
+        output_dim, hidden_dims, activation, output_activation, output_name
+    )
 
-    # Build one or more hidden layers
-    if isinstance(decoder_hidden_dim, List):
-        for i, h in enumerate(decoder_hidden_dim):
-            x = Dense(
-                h,
-                activation=activation,
-                name=f'{name}_hidden_{i}'
-            )(x)
-    else:
-        x = Dense(
-            decoder_hidden_dim,
-            activation=activation,
-            name=f'{name}_hidden'
-        )(x)
+    # 2) SUPERVISED branch
+    sup_concat = Concatenate(name=f"decoder_{output_name}_sup_concat")(sup_inputs)
+    x = sup_concat
+    for layer in shared_hidden_layers:
+        x = layer(x)
+    sup_out = shared_output_layer(x)
+    sup_model = Model(
+        inputs=sup_inputs,
+        outputs=sup_out,
+        name=f"supervised_{output_name}_decoder"
+    )
 
-    # Output layer
-    x_hat = Dense(
-        output_dim,
-        activation=output_activation,
-        name=f'{name}_output'
-    )(x)
+    # 3) UNSUPERVISED branch
+    unsup_concat = Concatenate(name=f"decoder_{output_name}_unsup_concat")(unsup_inputs)
+    x = unsup_concat
+    for layer in shared_hidden_layers:
+        x = layer(x)
+    unsup_out = shared_output_layer(x)
+    unsup_model = Model(
+        inputs=unsup_inputs,
+        outputs=unsup_out,
+        name=f"unsupervised_{output_name}_decoder"
+    )
 
-    return Model(inputs=inputs, outputs=x_hat, name=name)
+    # 4) PURE SHARED model (for saving weights later)
+    #    We re-create a fresh set of Inputs of the same shapes:
+    shared_inputs = []
+    for i, inp in enumerate(sup_inputs):
+        shape = inp.shape[1:]  # drop batch dim
+        shared_inputs.append(
+            Input(shape=shape, name=f"shared_{output_name}_input_{i}")
+        )
+    shared_concat = Concatenate(name=f"decoder_{output_name}_shared_concat")(shared_inputs)
+    x = shared_concat
+    for layer in shared_hidden_layers:
+        x = layer(x)
+    shared_out = shared_output_layer(x)
+    shared_model = Model(
+        inputs=shared_inputs,
+        outputs=shared_out,
+        name=f"shared_{output_name}_decoder"
+    )
+
+    return sup_model, unsup_model, shared_model
