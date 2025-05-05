@@ -27,6 +27,7 @@ from .components.wrapped_branches import (
 from .components.layers import ReparameterizationLayer
 from .components.losses import (
     kl_loss_generator,
+    kl_loss,
     reconstr_loss_generator,
     classifier_loss_generator,
     unsupervised_dummy_loss_fn
