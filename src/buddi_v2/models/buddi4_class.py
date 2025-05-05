@@ -543,9 +543,18 @@ class BuDDI4:
     # ─── Convenient Access ──────────────────────────────────────
     def print_loss_table(self):
         # compute column widths
+        fn_names = []
+        w_strs = []
+        for name, (fn, w) in self.__losses.items():
+            fn_name = type(fn).__name__
+            if fn_name == 'function':
+                fn_name = fn.__name__
+            fn_names.append(fn_name)
+            w_strs.append(str(w))
+        
         name_w   = max(len(k) for k in self.__losses) + 2
-        fn_w     = max(len(type(fn).__name__) for fn, _ in self.__losses.values()) + 2
-        weight_w = max(len(str(w)) for _, w in self.__losses.values()) + 2
+        fn_w     = max(len(name) for name in fn_names) + 2
+        weight_w = max(len(w) for w in w_strs) + 2
 
         # header
         header = f"{'Loss Name':<{name_w}}{'Function':<{fn_w}}{'Weight':<{weight_w}}"
@@ -556,6 +565,8 @@ class BuDDI4:
         # rows
         for name, (fn, weight) in self.__losses.items():
             fn_name = type(fn).__name__
+            if fn_name == 'function':
+                fn_name = fn.__name__
             print(f"{name:<{name_w}}{fn_name:<{fn_w}}{weight:<{weight_w}}")
             
     # ─── Fit ────────────────────────────────────────────────────
