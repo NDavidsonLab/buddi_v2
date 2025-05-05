@@ -11,7 +11,10 @@ import numpy as np
 import pandas as pd
 import anndata as ad
 
-from .. import preprocessing
+#from .. import preprocessing
+from buddi_v2 import preprocessing
+from buddi_v2.preprocessing import utils
+from buddi_v2.preprocessing import generate_pseudo_bulks
 
 # -----------------------------------------------------------------------------
 # Helper type aliases
