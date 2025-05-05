@@ -127,6 +127,10 @@ class BuDDI4:
         return self.__encoder_branch_names
     
     @property
+    def losses(self):
+        return self.__losses
+
+    @property
     def config(self):
         return self.__config
     
