@@ -166,7 +166,7 @@ Class version
 from tensorflow.keras.losses import CategoricalCrossentropy, MeanAbsoluteError
 from tensorflow.keras.optimizers import Adam
 
-from buddi_v2.models.components.losses import unsupervised_dummy_loss_fn
+from buddi_v2.models.components.losses import kl_loss
 from buddi_v2.models.buddi4 import fit_buddi4
 from buddi_v2.models.buddi4_class import BuDDI4
 
@@ -184,32 +184,32 @@ obj = BuDDI4(
 
 # configure reconstruction loss
 obj.set_reconstruction_loss(
-    fn=MeanAbsoluteError(),
+    fn=MeanAbsoluteError(reduction='sum'),
     weight=1.0,
 )
 
 # configure kl loss
 obj.set_encoder_loss(
     branch='label',
-    fn=unsupervised_dummy_loss_fn,
+    fn=kl_loss,
     weight=100.0,    
 )
 obj.set_encoder_loss(
     branch='slack',
-    fn=unsupervised_dummy_loss_fn,
+    fn=kl_loss,
     weight=1000.0,    
 )
 
 # configure classifier loss
 obj.set_predictor_loss(
     branch='label',
-    fn=CategoricalCrossentropy,
+    fn=kl_loss,
     weight=100.0
 )
 
 # configure prop estimator loss
 obj.set_prop_estimator_loss(
-    fn=MeanAbsoluteError,
+    fn=MeanAbsoluteError(reduction='sum'),
     weight=100.0,
 )
 
