@@ -7,6 +7,26 @@ import tensorflow.keras.backend as K
 LossFn = Callable[[tf.Tensor, tf.Tensor], tf.Tensor]
 LossAggregationFn = Callable[[tf.Tensor, Any], tf.Tensor]
 
+def kl_loss(
+    y_true: tf.Tensor,
+    y_pred: tf.Tensor,
+):
+    
+    """
+    KL divergence loss function. Returns batch-wise summed KL divergence loss
+
+    :param y_true: Not used. Kept for compatibility with Keras API.
+    :param y_pred: Predicted values.
+        In this case this would be the output of a VAE encoder
+        which is a concatenation of its mu and log_var output layers.
+    :return kl: KL divergence loss
+    """
+    
+    n_z_dim = tf.shape(y_pred)[-1] // 2
+    z_mu, z_log_var = y_pred[:, :n_z_dim], y_pred[:, n_z_dim:]
+
+    return -0.5 * K.sum(1 + z_log_var - K.square(z_mu) - K.exp(z_log_var), axis=-1)
+
 def kl_loss_generator(beta: float = 1.0, 
                       agg_fn: LossAggregationFn = K.sum,
                       **kwargs: Any
