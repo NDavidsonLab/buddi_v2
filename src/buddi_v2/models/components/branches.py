@@ -199,66 +199,6 @@ def build_semi_supervised_decoder(
     
     return supervised_decoder, unsupervised_decoder
 
-# def build_decoder_branch(
-#     y: tf.Tensor,
-#     z_label: tf.Tensor,
-#     z_stim: tf.Tensor,
-#     z_samp_type: tf.Tensor,
-#     z_slack: tf.Tensor,
-#     output_dim: int,
-#     decoder_hidden_dim: Union[int, List[int]],
-#     activation: ActivationFn = 'relu',
-#     output_activation: ActivationFn = 'sigmoid',
-#     name: str = 'decoder_model'
-# ) -> Model:
-#     """
-#     Defines a decoder network that takes in multiple inputs, 
-#     namely: 
-#     y, z_label, z_stim, z_samp_type, and z_slack
-
-#     :param y: Input tensor for the decoder
-#     :param z_label: Input tensor for the label latent representation
-#     :param z_stim: Input tensor for the stimulation latent representation
-#     :param z_samp_type: Input tensor for the sample type latent representation
-#     :param z_slack: Input tensor for the slack latent representation
-#     :param output_dim: Dimension of the output layer
-#     :param decoder_hidden_dim: Dimension of the hidden layers. 
-#         Number of hidden layers is determined by the length of this list.
-#         Defaults to a single hidden layer with 512 units.
-#     :param activation: Activation function for the hidden layer
-#     :param output_activation: Activation function for the output layer. 
-#         Defaults to 'sigmoid' for binary outputs
-#     :param name: Name of the decoder model
-#     :return decoder: Decoder model
-#     """
-    
-#     inputs = [y, z_label, z_stim, z_samp_type, z_slack]
-#     x = Concatenate(name=f'{name}_concat')(inputs)
-
-#     # Build one or more hidden layers
-#     if isinstance(decoder_hidden_dim, List):
-#         for i, h in enumerate(decoder_hidden_dim):
-#             x = Dense(
-#                 h,
-#                 activation=activation,
-#                 name=f'{name}_hidden_{i}'
-#             )(x)
-#     else:
-#         x = Dense(
-#             decoder_hidden_dim,
-#             activation=activation,
-#             name=f'{name}_hidden'
-#         )(x)
-
-#     # Output layer
-#     x_hat = Dense(
-#         output_dim,
-#         activation=output_activation,
-#         name=f'{name}_output'
-#     )(x)
-
-#     return Model(inputs=inputs, outputs=x_hat, name=name)
-
 def build_decoder_branch(
     sup_inputs: List[Input],
     unsup_inputs: List[Input],
