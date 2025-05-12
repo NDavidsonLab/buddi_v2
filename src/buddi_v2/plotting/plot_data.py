@@ -33,11 +33,7 @@ def plot_data(
     )
 
     # Add meta data to projection
-    _proj['cell_type'] = meta['cell_type'].values
-    _proj['cell_prop_type'] = meta['cell_prop_type'].values
-    _proj['sample_id'] = meta['sample_id'].values
-    _proj['stim'] = meta['stim'].values
-    _proj['samp_type'] = meta['samp_type'].values
+    _proj = pd.concat([_proj, meta.reset_index(drop=True, inplace=False)], axis=1)
 
     if color_by is None:
         # default color_by
