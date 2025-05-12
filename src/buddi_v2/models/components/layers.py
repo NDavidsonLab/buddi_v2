@@ -1,3 +1,5 @@
+from typing import Optional
+
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 import tensorflow.keras.backend as K
@@ -16,6 +18,9 @@ class ReparameterizationLayer(Layer):
         :param kwargs: Additional keyword arguments for the base Layer class.
         """
         super(ReparameterizationLayer, self).__init__(name=name, **kwargs)
+        self.__deterministic: bool = False
+        self.__seed: Optional[int] = None # really the base seed for deterministic behavior
+        self.__call_counter: int = 0 # doubles as secondary seed, allows for deterministic but non-identical epsilon
 
     def call(self, z_params, training=None):
         """
@@ -34,8 +39,34 @@ class ReparameterizationLayer(Layer):
         # Compute standard deviation
         z_sigma = K.exp(0.5 * z_log_var)
 
-        # Sample from standard normal distribution
-        epsilon = K.random_normal(shape=tf.shape(z_mu))
+        if self.__deterministic:
+            seed_tensor = tf.constant([self.__seed, self.__call_counter], dtype=tf.int32)
+            epsilon = tf.random.stateless_normal(
+                shape=tf.shape(z_mu),
+                seed=seed_tensor
+            )
+            self.__call_counter += 1
+        else:
+            # Sample from standard normal distribution
+            epsilon = K.random_normal(shape=tf.shape(z_mu))
 
         # Reparameterization trick: z = mu + sigma * epsilon
         return z_mu + z_sigma * epsilon
+    
+    def set_deterministic(self, deterministic: bool, seed: Optional[int] = None):
+        """
+        Set the layer to deterministic mode.
+
+        :param deterministic: Boolean indicating if the layer should be deterministic.
+        """
+        if deterministic:
+            if seed is None:
+                raise ValueError("Seed must be provided for deterministic mode.")
+            elif not isinstance(seed, int):
+                raise ValueError("Seed must be an integer.")
+            self.__seed = seed
+        else:
+            self.__seed = None       
+        
+        self.__deterministic = deterministic
+        self.__call_counter = 0 # reset call counter as secondary seed component
