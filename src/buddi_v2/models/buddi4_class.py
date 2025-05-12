@@ -12,12 +12,6 @@ from tensorflow.keras.layers import Input, Concatenate
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import MeanAbsoluteError, CategoricalCrossentropy
 
-# from .components.branches import (
-#     build_encoder_branch,
-#     build_latent_space_classifier,
-#     build_prop_estimator,
-#     build_decoder_branch
-# )
 from .components.wrapped_branches import (
     wrapped_build_encoder_branch,
     wrapped_build_decoder_branch,
@@ -250,12 +244,6 @@ class BuDDI4:
         activation = self.config['activation']
         output_activation = self.config['output_activation']
 
-        # input tensors
-        # X = Input(shape=(n_x,), name='X')
-        # Y = Input(shape=(n_y,), name='Y')
-        # self.__input_layers['X'] = X
-        # self.__input_layers['Y'] = Y
-
         # 1) encoder branch building
         for name in self.encoder_branch_names + [self.__slack_branch_name]:
             
@@ -266,23 +254,10 @@ class BuDDI4:
                 activation=activation,
                 representation_name=name
             )
-            # self.__encoders[name] = build_encoder_branch(
-            #     inputs = X,
-            #     hidden_dim = encoder_hidden_dim,
-            #     z_dim = z_dim,
-            #     activation = activation,
-            #     representation_name = name
-            # # )
-
-            # z_param = self.__encoders[name](X)
-            # self.__output_layers[f'z_{name}_param'] = z_param
 
             self.__resamp_layers[name] = ReparameterizationLayer(
                 name=f'z_{name}_resamp')
             
-            # z = self.__resamp_layers[name](z_param)
-            # self.__output_layers[f'z_{name}'] = z
-
             if name != self.__slack_branch_name:
                 self.__classifiers[name] = wrapped_build_latent_space_classifier_branch(
                     latent_shape = z_dim,
@@ -291,14 +266,6 @@ class BuDDI4:
                     # output activation of classifier should always be softmax
                     output_activation = 'softmax'
                 )
-                # self.__classifiers[name] = build_latent_space_classifier(
-                #     inputs = z,
-                #     num_classes = self.config[f'n_{name}s'],
-                #     representation_name = name,
-                #     output_activation = output_activation
-                # )
-                # pred = self.__classifiers[name](z)
-                # self.__output_layers[f'{name}_pred'] = pred
                 
         # 2) prop estimator building
         self.__prop_estimator = wrapped_build_prop_estimator_branch(
@@ -310,16 +277,6 @@ class BuDDI4:
             output_activation = 'softmax', 
             estimator_name = 'prop_estimator'
         )
-
-        # self.__prop_estimator = build_prop_estimator(
-        #     inputs = X,
-        #     num_classes=n_y,
-        #     activation=activation,
-        #     estimator_name='prop_estimator',
-        # )
-
-        # y_hat = self.__prop_estimator(X)
-        # self.__output_layers['y_hat'] = y_hat
 
         # 3) decoder building
         decoder_input_shapes = [
@@ -339,54 +296,6 @@ class BuDDI4:
             output_activation=output_activation,
             output_name='X'
         )
-        # sup_inputs = [
-        #     Y,
-        #     self.__output_layers['z_label'],
-        #     self.__output_layers['z_stim'],
-        #     self.__output_layers['z_samp_type'],
-        #     self.__output_layers['z_slack']
-        # ]
-        # unsup_inputs = [
-        #     self.__output_layers['y_hat'],
-        #     self.__output_layers['z_label'],
-        #     self.__output_layers['z_stim'],
-        #     self.__output_layers['z_samp_type'],
-        #     self.__output_layers['z_slack']
-        # ]
-
-        # (
-        # self.__sup_decoder,
-        # self.__unsup_decoder,
-        # self.__decoder
-        # ) = build_decoder_branch(
-        #     sup_inputs,
-        #     unsup_inputs,
-        #     output_dim=self.n_x,
-        #     hidden_dims=self.decoder_hidden_dims,
-        #     activation=self.decoder_activation,
-        #     output_activation=self.decoder_output_activation,
-        #     output_name='X'
-        # )
-        
-        # # output of supvised version of the decoder
-        # x_hat_sup = self.__sup_decoder(
-        #     (Y, 
-        #     self.__output_layers['z_label'],
-        #     self.__output_layers['z_stim'],
-        #     self.__output_layers['z_samp_type'],
-        #     self.__output_layers['z_slack'])
-        # )
-        # self.__output_layers['x_hat_sup'] = x_hat_sup
-
-        # # output of unsupervised version of the decoder
-        # x_hat_unsup = self.__unsup_decoder(
-        #     (self.__output_layers['y_hat'], 
-        #     self.__output_layers['z_label'],
-        #     self.__output_layers['z_stim'],
-        #     self.__output_layers['z_samp_type'],
-        #     self.__output_layers['z_slack'])
-        # )
-        # self.__output_layers['x_hat_unsup'] = x_hat_unsup
 
     # ─── Compile ────────────────────────────────────────────────
 
@@ -431,29 +340,6 @@ class BuDDI4:
             outputs=[sup_X_hat] + sup_z_params + sup_z_preds + [sup_Y_hat],
         )
 
-        # # wire supervised model for training
-        # inputs_sup = [
-        #     self.__input_layers['X'],
-        #     self.__input_layers['Y'],
-        # ]
-        # # stitch together the list of output tensors
-        # outputs_sup = [
-        #     self.__output_layers['x_hat_sup'],
-        #     self.__output_layers['z_label_param'],
-        #     self.__output_layers['z_stim_param'],
-        #     self.__output_layers['z_samp_type_param'],
-        #     self.__output_layers['z_slack_param'],
-        #     self.__output_layers['label_pred'],
-        #     self.__output_layers['stim_pred'],
-        #     self.__output_layers['samp_type_pred'],
-        #     self.__output_layers['y_hat'],
-        # ]
-        # model_sup = Model(
-        #     inputs=inputs_sup,
-        #     outputs=outputs_sup,
-        #     name='supervised_buddi4'
-        # )
-
         # stitch together the list of loss function keys corresponding to the outputs
         sup_loss_keys = [
             'x_hat_sup',
@@ -495,28 +381,6 @@ class BuDDI4:
             inputs=[unsup_X],
             outputs=[unsup_X_hat] + unsup_z_params + unsup_z_preds + [unsup_Y_hat],
         )
-        
-        # # wire unsupervised model for training
-        # inputs_unsup = [
-        #     self.__input_layers['X'],
-        # ]
-        # # likewise, stitch together the list of output tensors
-        # outputs_unsup = [
-        #     self.__output_layers['x_hat_unsup'],
-        #     self.__output_layers['z_label_param'],
-        #     self.__output_layers['z_stim_param'],
-        #     self.__output_layers['z_samp_type_param'],
-        #     self.__output_layers['z_slack_param'],
-        #     self.__output_layers['label_pred'],
-        #     self.__output_layers['stim_pred'],
-        #     self.__output_layers['samp_type_pred'],
-        #     self.__output_layers['y_hat'],
-        # ]
-        # model_unsup = Model(
-        #     inputs=inputs_unsup,
-        #     outputs=outputs_unsup,
-        #     name='unsupervised_buddi4'
-        # )
 
         # stitch together the list of loss function keys corresponding to the outputs
         unsup_loss_keys = [
