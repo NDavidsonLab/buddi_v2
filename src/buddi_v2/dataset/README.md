@@ -1,6 +1,10 @@
 # BuDDI dataset
 
-This module provides utilities for constructing supervised and unsupervised TensorFlow datasets tailored to the BuDDI models (For now, only datasets for buddi4 can be easily generated).
+This module provides utilities for constructing supervised and unsupervised TensorFlow `datasets` tailored to training the BuDDI models with defined return signature and support for built-in tensorflow dataset operations such as shuffling and down-sampling.
+
+(For now, only datasets for buddi4 can be easily generated with one-line function call).
+
+**Note** that this module is intended for use with **training** only. Visualization utilities expect the raw data modalities (e.g. expression, proportion as numpy 2d arrays and metadata as pandas dataframes).
 
 ## Overview
 
