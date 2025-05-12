@@ -226,6 +226,22 @@ class BuDDI4:
         """
         self.__losses['y_hat'] = (fn, weight)
 
+    def set_reparam_deterministic(
+            self, 
+            deterministic: bool, 
+            seed: Optional[int] = None):
+        """
+        Set the reparameterization layer to deterministic mode.
+        :param deterministic: Boolean indicating if the layer should be deterministic.
+        :param seed: Seed for the random number generator
+        """
+
+        for name, layer in self.__resamp_layers.items():
+            try:
+                layer.set_deterministic(deterministic, seed)
+            except Exception as e:
+                print(f"Error setting deterministic mode for {name}: {e}")
+
     # ─── Build Model ────────────────────────────────────────────
 
     def __build_models(self):
