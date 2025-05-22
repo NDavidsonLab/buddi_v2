@@ -487,7 +487,12 @@ class BuDDI4:
         :param directory: Directory to load the model from
         :return: BuDDI4 class object with loaded weights
         """
-        with open(os.path.join(directory, 'config.json'), 'r') as f:
+        config_file = os.path.join(directory, 'config.json')
+        if not os.path.exists(config_file):
+            # returns None if the config file does not exist            
+            return None
+        
+        with open(config_file, 'r') as f:
             cfg = json.load(f)
         obj = cls(**cfg)
 
