@@ -42,21 +42,21 @@ def plot_data(
         if col not in _proj.columns:
             raise ValueError(f"Column {col} not found in projection data.")
 
+    if len(color_by) < ncols:
+        ncols = len(color_by)
     if nrows is None:
-        nrows = int(np.ceil(len(color_by) / ncols))
-    
+        nrows = int(np.ceil(len(color_by) / ncols))    
     if figsize is None:
         figsize = (panel_width * ncols, panel_width * nrows)
 
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    axes = axes.flatten() if len(color_by) > 1 else np.array([axes])
+
     if title != '':
         fig.suptitle(title, fontsize=16)
 
     for i, hue_col in enumerate(color_by):
-
-        row = i // ncols
-        col = i % ncols
-        ax = axes[row][col]
+        ax = axes[i]
 
         sns.scatterplot(
             data=_proj,
@@ -74,6 +74,10 @@ def plot_data(
 
         if _proj[hue_col].nunique() > max_legend_categories:
             ax.legend_.remove()
+
+    # also remove the empty axes
+    for i in range(len(color_by), len(axes)):
+        fig.delaxes(axes[i])
 
     plt.tight_layout()
 

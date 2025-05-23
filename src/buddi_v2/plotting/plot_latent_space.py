@@ -1,8 +1,9 @@
+from typing import Any, Optional, Tuple, Dict
+
 import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import umap.umap_ as umap
@@ -117,6 +118,102 @@ def plot_latent_spaces_buddi4(
             # Remove legend for all but the last column in each row
             if i != len(latent_spaces) - 1 or color_legend_name == 'Sample ID': # do not display legend for the sample ids
                 axs[j, i].get_legend().remove()
+
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+
+    if show_plot:
+        plt.show()
+    else:
+        plt.close()
+
+    return fig
+
+def plot_latent_spaces_buddi(
+    obj: Any,
+    X_tmp: np.ndarray,
+    meta_tmp: pd.DataFrame,
+    type: str ='PCA',
+    alpha: int = 1,
+    panel_width: int = 5,
+    figsize: Optional[Tuple[int,int]] = None,
+    show_plot: bool = True,
+    save_path: str = None,
+    palette: str ="tab20",
+    _max_legend_categories: int = 20
+):  
+    """
+    Generic BuDDI latent space plotter for Buddi3 and Buddi4 models.
+
+    :param obj: BuDDI model object
+    :param X_tmp: Expression data
+    :param meta_tmp: Metadata dataframe
+    :param type: Type of projection to use (PCA, UMAP, tSNE)
+    :param alpha: Alpha value for scatterplot
+    :param panel_width: Width of each panel
+    :param figsize: Figure size
+    :param show_plot: Whether to show the plot
+    :param save_path: Path to save the plot
+    :param palette: Color palette for the plot
+    :param _max_legend_categories: Maximum number of unique values in the color vector to display a legend
+    """
+    
+    z_mu_dict = {}
+    z_color_dict = {}
+
+    marker_vec = None
+    z_mu_dict['Cell Type'] = obj.prop_estimator(X_tmp).numpy()
+    if 'cell_type' in meta_tmp.columns:
+        z_color_dict['Cell Type'] = meta_tmp['cell_type'].values
+        marker_vec = meta_tmp['cell_prop_type'].values
+    else:
+        z_color_dict['Cell Type'] = meta_tmp['cell_prop_type'].values
+
+    for branch_name, encoder in obj.encoders.items():
+        z_param = encoder(X_tmp).numpy()
+        z_mu_dict[branch_name] = z_param[:,:z_param.shape[1]//2]
+        if branch_name in meta_tmp.columns:
+            z_color_dict[branch_name] = meta_tmp[branch_name].values
+    
+    n_latent_spaces = len(z_mu_dict)
+    n_colors = len(z_color_dict)
+
+    fig, axs = plt.subplots(
+        n_colors, 
+        n_latent_spaces, 
+        figsize=figsize if figsize is not None else (panel_width*n_latent_spaces, panel_width*n_colors))
+    
+    for i, (latent_space_name, latent_space) in enumerate(z_mu_dict.items()):
+
+        proj_df = _get_projection(latent_space, type=type)
+
+        for j, (color_legend_name, color_vec) in enumerate(z_color_dict.items()):
+
+            ax = axs[j, i]
+
+            _plot_projection_marker(
+                proj_df=proj_df,
+                color_vec=color_vec,
+                marker_vec=marker_vec,
+                ax=ax,
+                title=latent_space_name if j == 0 else "", 
+                alpha=alpha, 
+                legend_title=color_legend_name,
+                palette=palette
+            )
+            
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+            # Remove legend for all but the last column in each row
+            if i != n_latent_spaces - 1:
+                _legend = ax.get_legend()
+                if _legend is not None:
+                    _legend.remove()
+            # Remove legend if the color vector has high number of unique values
+            orig_leg = ax.get_legend()
+            if (orig_leg is not None) and len(np.unique(color_vec)) > _max_legend_categories:
+                orig_leg.remove()
 
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight', dpi=300)

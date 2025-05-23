@@ -281,6 +281,8 @@ class BuDDI4Data:
                 raise ValueError(f"n_samples must be positive, got {n_samples}")            
             if random_state is not None:
                 rng = np.random.RandomState(random_state)
+            else:
+                rng = np.random.default_rng()
 
             idx = np.arange(len(results[0]))
             idx_sample = rng.choice(

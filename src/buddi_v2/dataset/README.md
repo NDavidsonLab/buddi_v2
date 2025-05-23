@@ -11,6 +11,7 @@ This module provides utilities for constructing supervised and unsupervised Tens
 ### Module file structure
 ```
 .
+├── buddi3_dataset.py       # High-level dataset builders for buddi3
 ├── buddi4_dataset.py       # High-level dataset builders for buddi4
 ├── dataset_generator.py    # Core dataset generator and signature logic
 ├── data_split.py           # (Optional) dataset splitting utilities
@@ -29,8 +30,19 @@ This module provides utilities for constructing supervised and unsupervised Tens
 
     **Returns**: `tf.data.Dataset` object with shape and type signatures matching the provided arrays
 
+#### `buddi3_dataset.py` Similar to `buddi4_dataset.py`, a wrapper of `get_dataset`
+- **`get_supervised_dataset`**: prepares a ready to use dataset for buddi4 from pseudobulk data with known cell-type proportions
+    - `X_known_prop`: expression matrix (n_samples × n_genes)
+    - `Y_known_prop`: ground-truth proportions (n_samples × n_cell_types)
+    - `label_known_prop`: one-hot encoded sample IDs (n_samples × n_unique_labels)
+    - `samp_type_known_prop`: one-hot sample type labels (n_samples × 2), typically [1, 0] for single-cell and [0, 1] for bulk
 
-#### `buddi4_dataset.py`
+- **`get_unsupervised_dataset`**: prepares a ready to use dataset for buddi4 from pseudobulk samples **without** known cell-type proportions
+    - `X_unknown_prop`: expression matrix (n_samples × n_genes)
+    - `label_unknown_prop`: one-hot encoded sample IDs (n_samples × n_unique_labels)
+    - `samp_type_unknown_prop`: one-hot sample type labels (n_samples × 2), typically [0, 1] for bulk
+
+#### `buddi4_dataset.py` Similar to `buddi3_dataset.py`, a wrapper of `get_dataset`
 - **`get_supervised_dataset`**: prepares a ready to use dataset for buddi4 from pseudobulk data with known cell-type proportions
     - `X_known_prop`: expression matrix (n_samples × n_genes)
     - `Y_known_prop`: ground-truth proportions (n_samples × n_cell_types)
@@ -45,6 +57,7 @@ This module provides utilities for constructing supervised and unsupervised Tens
     - `samp_type_unknown_prop`: one-hot sample type labels (n_samples × 2), typically [0, 1] for bulk
 
 ## Usage
+See examples for more details
 ```python
 import numpy as np
 from buddi_v2.dataset.buddi4_dataset import get_supervised_dataset, get_unsupervised_dataset

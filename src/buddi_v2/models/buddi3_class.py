@@ -1,4 +1,4 @@
-from typing import Tuple, Union, Callable, Optional, Dict, List
+from typing import Union, Callable, Optional, List, Dict, Tuple
 import os
 import json
 
@@ -30,9 +30,9 @@ from .buddi_abstract_class import BuDDIAbstract
 
 ActivationFn = Union[str, Callable[[tf.Tensor], tf.Tensor]]
 
-class BuDDI4(BuDDIAbstract):
+class BuDDI3(BuDDIAbstract):
     """
-    BuDDI4 class for building and training the BuDDI4 model.
+    BuDDI3 model class
     """
 
     def __init__(
@@ -49,7 +49,7 @@ class BuDDI4(BuDDIAbstract):
         **kwargs # to collect the n_{branch_name} arguments
     ):
         """
-        BuDDI4 model class constructor.
+        BuDDI3 model class constructor
 
         :param n_x: Number of input features
         :param n_y: Number of output features
@@ -77,8 +77,8 @@ class BuDDI4(BuDDIAbstract):
 
     # ─── Checker functions ───────────────────────────────────────────
     def default_encoder_branch_names(self):
-        return ['sample_id', 'stim', 'samp_type']
-
+        return ['sample_id', 'samp_type']
+    
     def check_encoder_branch_names(
         self,
         encoder_branch_names: List[str]
@@ -89,7 +89,7 @@ class BuDDI4(BuDDIAbstract):
 
         :param encoder_branch_names: List of encoder branch names
         """
-        if len(encoder_branch_names) != 3:
+        if len(encoder_branch_names) != 2:
             raise ValueError(
                 f"Expected 0 encoder branch names, got {len(encoder_branch_names)}"
             )
@@ -114,7 +114,7 @@ class BuDDI4(BuDDIAbstract):
             )
         if slack_branch_name in self.encoder_branch_names:
             raise ValueError(
-                f"Slack branch name {slack_branch_name} cannot be in encoder branch names {self.encoder_branch_names}"
+                f"Slack branch name {slack_branch_name} cannot be in encoder branch names"
             )
         
     # ─── Fit ────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ class BuDDI4(BuDDIAbstract):
         self.prop_estimator.save_weights(os.path.join(directory, 'prop_estimator.weights.h5'))
 
     @classmethod
-    def load(cls, directory: str) -> 'BuDDI4':
+    def load(cls, directory: str) -> 'BuDDI3':
         """
         Load the model from the specified directory and reconstruct the model class
         from the saved config
