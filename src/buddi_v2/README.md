@@ -15,6 +15,6 @@
 3. Some training Examples
 
 ## Missing:
-- Generic BuDDI with arbitrary number of encoder branches (which can be simply implemented by subclassing `buddi_v2.model.buddi_abstract_class`), but will need custom dataset classes for use with generic fitter function
+- Generic BuDDI with arbitrary number of encoder branches (which can be simply implemented by subclassing `buddi_v2.model.buddi_abstract_class`, see existing `BuDDI3` and `BuDDI4` as reference), but will need custom dataset classes for use with generic fitter function (also reference `buddi_v2.dataset.buddi3_dataset.*` and `buddi_v2.dataset.buddi4_dataset.*`) 
 - BuDDI validation helper (currently in analysis repo)
 - Installation
